@@ -1,0 +1,170 @@
+@startuml Trade_Store_Class_Diagram
+!define ABSTRACT_BACKGROUND #E1F5FE
+!define ENTITY_BACKGROUND #FFF9C4
+!define EXCEPTION_BACKGROUND #FFEBEE
+
+skinparam backgroundColor #FAFAFA
+skinparam classBorderColor #37474F
+skinparam classBackgroundColor #ECEFF1
+
+package "Model" {
+    class Trade <<Entity>> {
+        -id: Long
+        -tradeId: String
+        -version: Integer
+        -counterPartyId: String
+        -bookId: String
+        -maturityDate: LocalDate
+        -createdDate: LocalDateTime
+        -updatedDate: LocalDateTime
+        -expired: Boolean
+        -expiryDate: LocalDate
+        -status: TradeStatus
+        +onCreate()
+        +onUpdate()
+    }
+
+    enum TradeStatus {
+        ACTIVE
+        EXPIRED
+        REJECTED
+    }
+
+    class TradeAudit <<Document>> {
+        -id: String
+        -tradeId: String
+        -version: Integer
+        -counterPartyId: String
+        -bookId: String
+        -maturityDate: String
+        -createdDate: String
+        -action: String
+        -reason: String
+        -auditTimestamp: LocalDateTime
+        -status: String
+    }
+}
+
+package "DTO" {
+    class TradeRequestDTO {
+        -tradeId: String
+        -version: Integer
+        -counterPartyId: String
+        -bookId: String
+        -maturityDate: LocalDate
+    }
+
+    class TradeResponseDTO {
+        -id: Long
+        -tradeId: String
+        -version: Integer
+        -counterPartyId: String
+        -bookId: String
+        -maturityDate: LocalDate
+        -createdDate: LocalDateTime
+        -updatedDate: LocalDateTime
+        -expired: Boolean
+        -expiryDate: LocalDate
+        -status: String
+    }
+}
+
+package "Validator" {
+    class TradeVersionValidator {
+        +validateVersion(Optional<Trade>, Integer, String)
+    }
+
+    class TradeMaturityValidator {
+        +validateMaturityDate(LocalDate, String)
+        +isExpired(LocalDate): Boolean
+    }
+}
+
+package "Repository" {
+    interface TradeRepository <<Repository>> {
+        +findByTradeId(String): Optional<Trade>
+    }
+
+    interface TradeAuditRepository <<Repository>> {
+        +findByTradeId(String): List<TradeAudit>
+    }
+}
+
+package "Service" {
+    class TradeService {
+        -tradeRepository: TradeRepository
+        -tradeAuditRepository: TradeAuditRepository
+        -versionValidator: TradeVersionValidator
+        -maturityValidator: TradeMaturityValidator
+        -tradeProducerService: TradeProducerService
+        +saveTrade(TradeRequestDTO): TradeResponseDTO
+        +getTradeByTradeId(String): TradeResponseDTO
+        +getAllTrades(): List<TradeResponseDTO>
+        +markTradeAsExpired(String): TradeResponseDTO
+        +getAuditTrail(String): List<TradeAudit>
+        -createAudit(Trade, String, String)
+        -mapToResponseDTO(Trade): TradeResponseDTO
+    }
+
+    class TradeProducerService {
+        -kafkaTemplate: KafkaTemplate
+        -objectMapper: ObjectMapper
+        +sendTradeEvent(Trade, String)
+    }
+
+    class TradeConsumerService {
+        -objectMapper: ObjectMapper
+        +consumeTradeEvent(String)
+        +consumeTradeUpdate(String)
+    }
+}
+
+package "Controller" {
+    class TradeController {
+        -tradeService: TradeService
+        +saveTrade(TradeRequestDTO): ResponseEntity<TradeResponseDTO>
+        +getTradeByTradeId(String): ResponseEntity<TradeResponseDTO>
+        +getAllTrades(): ResponseEntity<List<TradeResponseDTO>>
+        +markTradeAsExpired(String): ResponseEntity<TradeResponseDTO>
+        +getAuditTrail(String): ResponseEntity<List<TradeAudit>>
+    }
+}
+
+package "Exception" {
+    class TradeVersionException <<Exception>> {
+    }
+
+    class TradeMaturityException <<Exception>> {
+    }
+
+    class TradeNotFoundException <<Exception>> {
+    }
+
+    class GlobalExceptionHandler {
+        +handleTradeVersionException()
+        +handleTradeMaturityException()
+        +handleTradeNotFoundException()
+        +handleValidationException()
+        +handleGenericException()
+    }
+}
+
+' Relationships
+Trade "1" -- "many" TradeAudit
+Trade *-- TradeStatus
+TradeService --> TradeRepository
+TradeService --> TradeAuditRepository
+TradeService --> TradeVersionValidator
+TradeService --> TradeMaturityValidator
+TradeService --> TradeProducerService
+TradeController --> TradeService
+TradeController --> TradeRequestDTO
+TradeController --> TradeResponseDTO
+TradeVersionValidator -.-> TradeVersionException
+TradeMaturityValidator -.-> TradeMaturityException
+TradeService -.-> TradeNotFoundException
+GlobalExceptionHandler --> TradeVersionException
+GlobalExceptionHandler --> TradeMaturityException
+GlobalExceptionHandler --> TradeNotFoundException
+
+@enduml

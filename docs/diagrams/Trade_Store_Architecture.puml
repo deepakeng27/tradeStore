@@ -1,0 +1,155 @@
+@startuml Trade_Store_Architecture
+!define TECH_BG #E3F2FD
+!define DATABASE_BG #FFF9C4
+!define MESSAGE_BG #F3E5F5
+!define CLIENT_BG #E8F5E9
+
+skinparam rectangle {
+    BackgroundColor TECH_BG
+    BorderColor #1976D2
+    FontColor #1565C0
+}
+
+package "Client Layer" {
+    rectangle "Swagger UI\n/swagger-ui.html" as SWAGGER {
+        BackgroundColor CLIENT_BG
+    }
+
+    rectangle "REST Clients\n(Postman, cURL, etc)" as CLIENTS {
+        BackgroundColor CLIENT_BG
+    }
+}
+
+package "API & Web Layer" {
+    rectangle "Spring Boot Application\n(Port 8080)" as APP {
+        BackgroundColor TECH_BG
+    }
+
+    rectangle "Trade Controller\n@RestController" as CONTROLLER {
+        BackgroundColor TECH_BG
+    }
+
+    rectangle "Global Exception Handler" as EXCEPTION {
+        BackgroundColor TECH_BG
+    }
+}
+
+package "Business Logic Layer" {
+    rectangle "Trade Service" as SERVICE {
+        BackgroundColor TECH_BG
+    }
+
+    rectangle "Version Validator\nMaturity Validator" as VALIDATORS {
+        BackgroundColor TECH_BG
+    }
+}
+
+package "Messaging & Streaming" {
+    rectangle "Kafka Producer Service" as PRODUCER {
+        BackgroundColor MESSAGE_BG
+    }
+
+    rectangle "Kafka Consumer Service" as CONSUMER {
+        BackgroundColor MESSAGE_BG
+    }
+
+    rectangle "Kafka Broker\n(Port 9092)" as KAFKA {
+        BackgroundColor MESSAGE_BG
+    }
+
+    rectangle "Topics:\ntrade-events\ntrade-updates" as TOPICS {
+        BackgroundColor MESSAGE_BG
+    }
+}
+
+package "Data Persistence Layer" {
+    rectangle "PostgreSQL\n(Port 5432)" as POSTGRES {
+        BackgroundColor DATABASE_BG
+    }
+
+    rectangle "MongoDB\n(Port 27017)" as MONGO {
+        BackgroundColor DATABASE_BG
+    }
+
+    rectangle "Trade Repository\n(JPA)" as TRADE_REPO {
+        BackgroundColor TECH_BG
+    }
+
+    rectangle "Trade Audit Repository\n(Spring Data MongoDB)" as AUDIT_REPO {
+        BackgroundColor TECH_BG
+    }
+}
+
+package "Infrastructure & DevOps" {
+    rectangle "Docker Compose\nOrchestration" as DOCKER {
+        BackgroundColor #F5F5F5
+    }
+
+    rectangle "Jenkins Pipeline\nCI/CD" as JENKINS {
+        BackgroundColor #F5F5F5
+    }
+
+    rectangle "Sonarqube\nCode Quality" as SONAR {
+        BackgroundColor #F5F5F5
+    }
+
+    rectangle "OWASP\nVulnerability Scan" as OWASP {
+        BackgroundColor #F5F5F5
+    }
+}
+
+' Client connections
+SWAGGER --> CONTROLLER
+CLIENTS --> CONTROLLER
+
+' API layer connections
+CONTROLLER --> EXCEPTION
+CONTROLLER --> SERVICE
+
+' Business logic connections
+SERVICE --> VALIDATORS
+SERVICE --> TRADE_REPO
+SERVICE --> AUDIT_REPO
+SERVICE --> PRODUCER
+
+' Messaging connections
+PRODUCER --> KAFKA
+KAFKA --> TOPICS
+TOPICS --> CONSUMER
+CONSUMER --> MONGO
+
+' Data layer connections
+TRADE_REPO --> POSTGRES
+AUDIT_REPO --> MONGO
+
+' Infrastructure connections
+DOCKER -.-> APP
+DOCKER -.-> POSTGRES
+DOCKER -.-> MONGO
+DOCKER -.-> KAFKA
+JENKINS --> APP
+JENKINS --> SONAR
+JENKINS --> OWASP
+
+note right of APP
+  Java 21
+  Spring Boot 4.0.2
+  PostgreSQL Driver
+  MongoDB Driver
+  Spring Kafka
+end note
+
+note right of KAFKA
+  3 partitions
+  7-day retention
+  Single broker setup
+end note
+
+note right of JENKINS
+  Build
+  Unit Tests
+  Vulnerability Scan
+  Integration Tests
+  Docker Build
+  Deploy
+end note

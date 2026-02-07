@@ -1,0 +1,148 @@
+{
+  "info": {
+    "name": "Trade Store API",
+    "description": "API collection for Trade Store application with version control, maturity validation, and event streaming",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Trade",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tradeId\": \"T1\",\n  \"version\": 1,\n  \"counterPartyId\": \"CP-1\",\n  \"bookId\": \"B1\",\n  \"maturityDate\": \"2026-05-20\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/trades",
+          "host": ["{{base_url}}"],
+          "path": ["trades"]
+        }
+      }
+    },
+    {
+      "name": "Get Trade by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/trades/T1",
+          "host": ["{{base_url}}"],
+          "path": ["trades", "T1"]
+        }
+      }
+    },
+    {
+      "name": "Get All Trades",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/trades",
+          "host": ["{{base_url}}"],
+          "path": ["trades"]
+        }
+      }
+    },
+    {
+      "name": "Update Trade with Higher Version",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tradeId\": \"T1\",\n  \"version\": 2,\n  \"counterPartyId\": \"CP-2\",\n  \"bookId\": \"B2\",\n  \"maturityDate\": \"2026-06-20\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/trades",
+          "host": ["{{base_url}}"],
+          "path": ["trades"]
+        }
+      }
+    },
+    {
+      "name": "Try Update with Lower Version (Should Fail - 409)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tradeId\": \"T1\",\n  \"version\": 1,\n  \"counterPartyId\": \"CP-1\",\n  \"bookId\": \"B1\",\n  \"maturityDate\": \"2026-05-20\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/trades",
+          "host": ["{{base_url}}"],
+          "path": ["trades"]
+        }
+      }
+    },
+    {
+      "name": "Try Invalid Maturity Date (Should Fail - 400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tradeId\": \"T2\",\n  \"version\": 1,\n  \"counterPartyId\": \"CP-1\",\n  \"bookId\": \"B1\",\n  \"maturityDate\": \"2025-01-01\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/trades",
+          "host": ["{{base_url}}"],
+          "path": ["trades"]
+        }
+      }
+    },
+    {
+      "name": "Mark Trade as Expired",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/trades/T1/expire",
+          "host": ["{{base_url}}"],
+          "path": ["trades", "T1", "expire"]
+        }
+      }
+    },
+    {
+      "name": "Get Audit Trail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/trades/T1/audit",
+          "host": ["{{base_url}}"],
+          "path": ["trades", "T1", "audit"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api",
+      "type": "string"
+    }
+  ]
+}

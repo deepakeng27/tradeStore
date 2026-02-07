@@ -1,0 +1,75 @@
+@startuml Trade_Processing_Sequence
+title Trade Store - Trade Processing Sequence Diagram
+actor Client
+participant "Trade Controller" as TC
+participant "Trade Service" as TS
+participant "Validators" as TV
+participant "Trade Repository" as TR
+participant "Trade Audit\nRepository" as TA
+participant "Kafka Producer" as KP
+
+Client ->> TC: POST /trades (TradeRequestDTO)
+activate TC
+    TC ->> TS: saveTrade(TradeRequestDTO)
+    activate TS
+        TS ->> TV: validateMaturityDate()
+        activate TV
+            alt Maturity date is past
+                TV --X TS: TradeMaturityException
+                TS --X TC: TradeMaturityException
+                TC --X Client: 400 Bad Request
+            else Maturity date is valid
+                TV -->> TS: Validation passed
+            end
+        deactivate TV
+
+        TS ->> TR: findByTradeId()
+        activate TR
+            TR -->> TS: Optional<Trade>
+        deactivate TR
+
+        TS ->> TV: validateVersion()
+        activate TV
+            alt Version is lower
+                TV --X TS: TradeVersionException
+                TS --X TC: TradeVersionException
+                TC --X Client: 409 Conflict
+            else Version is valid
+                TV -->> TS: Validation passed
+            end
+        deactivate TV
+
+        alt Existing trade found
+            TS ->> TR: save(updated Trade)
+            activate TR
+                TR -->> TS: Saved Trade
+            deactivate TR
+            TS ->> TA: save(UPDATE audit)
+        else New trade
+            TS ->> TR: save(new Trade)
+            activate TR
+                TR -->> TS: Saved Trade
+            deactivate TR
+            TS ->> TA: save(CREATE audit)
+        end
+
+        TS ->> TA: save(TradeAudit)
+        activate TA
+            TA -->> TS: Audit saved
+        deactivate TA
+
+        TS ->> KP: sendTradeEvent(Trade, action)
+        activate KP
+            KP -->> TS: Event published
+        deactivate KP
+
+        TS -->> TC: TradeResponseDTO
+    deactivate TS
+
+    TC -->> Client: 201 Created (TradeResponseDTO)
+deactivate TC
+
+par Async Processing (Not blocking client)
+    KP ->> KP: Publish to Kafka Topic
+    Note right of KP: trade-events or trade-updates
+end

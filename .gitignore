@@ -1,0 +1,88 @@
+# Build artifacts
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+target/
+
+# Gradle cache (exclude)
+.gradle/
+
+# Gradle wrapper (include - required for builds)
+!gradle/
+!gradle/wrapper/
+!gradle/wrapper/**
+
+# JAR files (exclude all except Gradle wrapper)
+*.jar
+!gradle/wrapper/*.jar
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# IDE - Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# IDE - NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# IDE - VS Code
+.vscode/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+postgres_data/
+mongodb_data/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Documentation (keep only README.md and docs/ directory)
+HELP.md
+ARCHITECTURE.md
+DEVELOPMENT_GUIDE.md
+FILE_INVENTORY.md
+IMPLEMENTATION_SUMMARY.md
+INDEX.md
+PROJECT_COMPLETION_SUMMARY.md
+QUICK_REFERENCE.md
+START_HERE.md
+API_DOCUMENTATION.md
+# Keep docs/ directory
+!docs/
+
+# Test reports
+build/reports/
+build/test-results/
+
+# Gradle cache
+.gradle/
+

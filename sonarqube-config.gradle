@@ -1,0 +1,46 @@
+# Gradle SonarQube Plugin Configuration
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.0.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.sonarqube' version '4.4.1.3373'
+    id 'jacoco'
+}
+
+// ... other gradle configuration ...
+
+jacoco {
+    toolVersion = "0.8.10"
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "trade-store"
+        property "sonar.projectName", "Trade Store Application"
+        property "sonar.projectVersion", version
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.binaries", "build/classes"
+        property "sonar.java.libraries", configurations.compileClasspath.asPath
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml"
+        property "sonar.exclusions", "**/config/**,**/dto/**,**/model/**"
+        property "sonar.issue.ignore.multicriteria", "e1"
+        property "sonar.issue.ignore.multicriteria.e1.ruleKey", "java:S1313"
+        property "sonar.issue.ignore.multicriteria.e1.resourceKey", "**/*"
+    }
+}
+
+// Add JaCoCo plugin configuration
+test {
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
