@@ -85,7 +85,6 @@ dependencyCheck {
 		assemblyEnabled = false
 		nugetconfEnabled = false
 		nodeEnabled = false
-		retireJsEnabled = false
 		// Keep Java/Maven analyzers enabled
 		jarEnabled = true
 		archiveEnabled = true
