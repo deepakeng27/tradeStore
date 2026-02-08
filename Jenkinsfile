@@ -56,37 +56,62 @@ pipeline {
             steps {
                 echo '========== Scanning for Vulnerabilities =========='
                 script {
-                    sh '''
-                        ./gradlew dependencyCheckAnalyze --no-daemon || exit 0
-                    '''
+                    // Use Jenkins credential for NVD API key
+                    withCredentials([string(credentialsId: 'nvd-api-key-1', variable: 'NVD_API_KEY')]) {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            try {
+                                sh '''
+                                    echo "Running OWASP Dependency Check with NVD API key..."
+                                    export NVD_API_KEY="${NVD_API_KEY}"
+                                    ./gradlew dependencyCheckAnalyze --no-daemon --info
+                                '''
 
-                    // Check for critical/blocker vulnerabilities
-                    def reportExists = fileExists('build/reports/dependency-check-report.json')
-                    if (reportExists) {
-                        def report = readJSON file: 'build/reports/dependency-check-report.json'
-                        def criticalCount = 0
-                        def highCount = 0
+                                // Check for critical/blocker vulnerabilities
+                                def reportExists = fileExists('build/reports/dependency-check-report.json')
+                                if (reportExists) {
+                                    def report = readJSON file: 'build/reports/dependency-check-report.json'
+                                    def criticalCount = 0
+                                    def highCount = 0
 
-                        report.dependencies.each { dep ->
-                            dep.vulnerabilities?.each { vuln ->
-                                if (vuln.severity == 'CRITICAL') {
-                                    criticalCount++
-                                    echo "CRITICAL: ${vuln.name} - ${vuln.description}"
+                                    report.dependencies.each { dep ->
+                                        dep.vulnerabilities?.each { vuln ->
+                                            if (vuln.severity == 'CRITICAL') {
+                                                criticalCount++
+                                                echo "CRITICAL: ${vuln.name} - ${vuln.description}"
+                                            }
+                                            if (vuln.severity == 'HIGH') {
+                                                highCount++
+                                                echo "HIGH: ${vuln.name} - ${vuln.description}"
+                                            }
+                                        }
+                                    }
+
+                                    echo "=========================================="
+                                    echo "Vulnerability Summary:"
+                                    echo "  CRITICAL: ${criticalCount}"
+                                    echo "  HIGH: ${highCount}"
+                                    echo "=========================================="
+
+                                    if (criticalCount > 0) {
+                                        error("Build failed: ${criticalCount} CRITICAL vulnerabilities detected!")
+                                    }
+                                    if (highCount > 3) {
+                                        error("Build failed: ${highCount} HIGH vulnerabilities detected (threshold: 3)!")
+                                    }
+
+                                    echo "✓ Vulnerability scan passed - No critical issues found"
+                                } else {
+                                    echo "⚠ Warning: Vulnerability report not generated"
                                 }
-                                if (vuln.severity == 'HIGH') {
-                                    highCount++
-                                    echo "HIGH: ${vuln.name} - ${vuln.description}"
-                                }
+                            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                                echo "⚠ Vulnerability scan timed out after 10 minutes"
+                                echo "This may happen on first run when downloading NVD database"
+                                echo "Subsequent builds will be faster due to caching"
+                                currentBuild.result = 'UNSTABLE'
+                            } catch (Exception e) {
+                                echo "✗ Vulnerability scan failed: ${e.message}"
+                                throw e
                             }
-                        }
-
-                        echo "Vulnerability Summary: CRITICAL=${criticalCount}, HIGH=${highCount}"
-
-                        if (criticalCount > 0) {
-                            error("Build failed: ${criticalCount} CRITICAL vulnerabilities detected!")
-                        }
-                        if (highCount > 3) {
-                            error("Build failed: ${highCount} HIGH vulnerabilities detected (threshold: 3)!")
                         }
                     }
                 }

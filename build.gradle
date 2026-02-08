@@ -2,7 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id 'org.owasp.dependencycheck' version '10.0.4'
+	id 'org.owasp.dependencycheck' version '11.1.1'
 }
 
 group = 'com.dws.trade'
@@ -71,10 +71,29 @@ dependencyCheck {
 	outputDirectory = 'build/reports'
 	failBuildOnCVSS = 7
 	suppressionFile = 'dependency-check-suppressions.xml'
+
+	// NVD API Configuration - reads from environment variable
+	nvd {
+		apiKey = System.getenv('NVD_API_KEY') ?: ''
+		// Cache the NVD data to speed up subsequent scans
+		datafeedUrl = 'https://nvd.nist.gov/feeds/json/cve/1.1'
+		validForHours = 24  // Cache data for 24 hours
+	}
+
+	// Disable unnecessary analyzers for faster scans
 	analyzers {
 		assemblyEnabled = false
 		nugetconfEnabled = false
 		nodeEnabled = false
+		retireJsEnabled = false
+		// Keep Java/Maven analyzers enabled
+		jarEnabled = true
+		archiveEnabled = true
+		centralEnabled = true
 	}
+
+	// Skip test dependencies to reduce scan time
+	skipTestGroups = true
+	skipConfigurations = ['testCompileClasspath', 'testRuntimeClasspath']
 }
 
