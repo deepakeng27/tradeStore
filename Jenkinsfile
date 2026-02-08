@@ -24,7 +24,10 @@ pipeline {
         stage('Build') {
             steps {
                 echo '========== Building application =========='
-                sh './gradlew clean build -x test --no-daemon'
+                sh '''
+                    chmod +x gradlew
+                    ./gradlew clean build -x test --no-daemon
+                '''
             }
         }
 
@@ -116,7 +119,7 @@ pipeline {
             steps {
                 echo '========== Stopping existing containers =========='
                 sh """
-                    docker-compose -p ${DOCKER_COMPOSE_PROJECT} down || exit 0
+                    docker compose -p ${DOCKER_COMPOSE_PROJECT} down || exit 0
                 """
             }
         }
@@ -125,7 +128,7 @@ pipeline {
             steps {
                 echo '========== Deploying Application =========='
                 sh """
-                    docker-compose -p ${DOCKER_COMPOSE_PROJECT} up -d
+                    docker compose -p ${DOCKER_COMPOSE_PROJECT} up -d
                 """
                 sleep(time: 45, unit: 'SECONDS')
             }
@@ -277,14 +280,14 @@ pipeline {
             echo '========== Build Failed =========='
             echo "✗ Build failed. Check logs for details."
             sh """
-                docker-compose -p ${DOCKER_COMPOSE_PROJECT} logs --tail=100
+                docker compose -p ${DOCKER_COMPOSE_PROJECT} logs --tail=100 || true
             """
         }
         cleanup {
             echo '========== Cleaning up =========='
             // Keep containers running for manual testing
             // Uncomment below to stop containers after build
-            // bat "docker-compose -p ${DOCKER_COMPOSE_PROJECT} down"
+            // sh "docker compose -p ${DOCKER_COMPOSE_PROJECT} down"
         }
     }
 }
