@@ -24,14 +24,14 @@ pipeline {
         stage('Build') {
             steps {
                 echo '========== Building application =========='
-                bat 'gradlew.bat clean build -x test --no-daemon'
+                sh './gradlew clean build -x test --no-daemon'
             }
         }
 
         stage('Unit Tests') {
             steps {
                 echo '========== Running Unit Tests =========='
-                bat 'gradlew.bat test --no-daemon'
+                sh './gradlew test --no-daemon'
             }
             post {
                 always {
@@ -53,8 +53,8 @@ pipeline {
             steps {
                 echo '========== Scanning for Vulnerabilities =========='
                 script {
-                    bat '''
-                        gradlew.bat dependencyCheckAnalyze --no-daemon || exit 0
+                    sh '''
+                        ./gradlew dependencyCheckAnalyze --no-daemon || exit 0
                     '''
 
                     // Check for critical/blocker vulnerabilities
@@ -106,7 +106,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 echo '========== Building Docker Image =========='
-                bat """
+                sh """
                     docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} -t ${DOCKER_IMAGE}:latest .
                 """
             }
@@ -115,7 +115,7 @@ pipeline {
         stage('Stop Existing Containers') {
             steps {
                 echo '========== Stopping existing containers =========='
-                bat """
+                sh """
                     docker-compose -p ${DOCKER_COMPOSE_PROJECT} down || exit 0
                 """
             }
@@ -124,7 +124,7 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 echo '========== Deploying Application =========='
-                bat """
+                sh """
                     docker-compose -p ${DOCKER_COMPOSE_PROJECT} up -d
                 """
                 sleep(time: 45, unit: 'SECONDS')
@@ -140,7 +140,7 @@ pipeline {
 
                     for (int i = 1; i <= maxRetries; i++) {
                         try {
-                            bat """
+                            sh """
                                 curl -f http://localhost:${APP_PORT}/api/actuator/health
                             """
                             healthy = true
@@ -168,59 +168,59 @@ pipeline {
                     try {
                         // Test 1: Create Trade
                         echo "Test 1: Creating a trade..."
-                        bat '''
-                            curl -X POST http://localhost:8080/api/trades ^
-                                -H "Content-Type: application/json" ^
-                                -d "{\\"tradeId\\":\\"T1\\",\\"version\\":1,\\"counterPartyId\\":\\"CP-1\\",\\"bookId\\":\\"B1\\",\\"maturityDate\\":\\"2026-05-20\\"}" ^
+                        sh '''
+                            curl -X POST http://localhost:8080/api/trades \\
+                                -H "Content-Type: application/json" \\
+                                -d '{"tradeId":"T1","version":1,"counterPartyId":"CP-1","bookId":"B1","maturityDate":"2026-05-20"}' \\
                                 -f
                         '''
                         echo "✓ Test 1 PASSED: Trade created successfully"
 
                         // Test 2: Retrieve Trade
                         echo "Test 2: Retrieving trade..."
-                        bat 'curl -f http://localhost:8080/api/trades/T1'
+                        sh 'curl -f http://localhost:8080/api/trades/T1'
                         echo "✓ Test 2 PASSED: Trade retrieved successfully"
 
                         // Test 3: Get All Trades
                         echo "Test 3: Getting all trades..."
-                        bat 'curl -f http://localhost:8080/api/trades'
+                        sh 'curl -f http://localhost:8080/api/trades'
                         echo "✓ Test 3 PASSED: All trades retrieved successfully"
 
                         // Test 4: Swagger UI Accessible
                         echo "Test 4: Checking Swagger UI..."
-                        bat 'curl -f http://localhost:8080/api/swagger-ui.html'
+                        sh 'curl -f http://localhost:8080/api/swagger-ui.html'
                         echo "✓ Test 4 PASSED: Swagger UI accessible"
 
                         // Test 5: Database Connectivity
                         echo "Test 5: Checking database connectivity..."
-                        bat 'curl -f http://localhost:8080/api/actuator/health/db'
+                        sh 'curl -f http://localhost:8080/api/actuator/health/db'
                         echo "✓ Test 5 PASSED: Database connection healthy"
 
                         // Test 6: Version Validation
                         echo "Test 6: Testing version validation (should fail with lower version)..."
-                        bat '''
-                            curl -X POST http://localhost:8080/api/trades ^
-                                -H "Content-Type: application/json" ^
-                                -d "{\\"tradeId\\":\\"T1\\",\\"version\\":0,\\"counterPartyId\\":\\"CP-1\\",\\"bookId\\":\\"B1\\",\\"maturityDate\\":\\"2026-05-20\\"}" ^
-                                -w "%%{http_code}" ^
-                                -o nul ^
-                                -s | findstr "400" > nul
-                        '''
-                        if (errorlevel == 0) {
+                        def versionTest = sh(script: '''
+                            curl -X POST http://localhost:8080/api/trades \\
+                                -H "Content-Type: application/json" \\
+                                -d '{"tradeId":"T1","version":0,"counterPartyId":"CP-1","bookId":"B1","maturityDate":"2026-05-20"}' \\
+                                -w "%{http_code}" \\
+                                -o /dev/null \\
+                                -s
+                        ''', returnStdout: true).trim()
+                        if (versionTest == "400") {
                             echo "✓ Test 6 PASSED: Version validation working correctly"
                         }
 
                         // Test 7: Maturity Date Validation
                         echo "Test 7: Testing maturity date validation (past date should fail)..."
-                        bat '''
-                            curl -X POST http://localhost:8080/api/trades ^
-                                -H "Content-Type: application/json" ^
-                                -d "{\\"tradeId\\":\\"T2\\",\\"version\\":1,\\"counterPartyId\\":\\"CP-1\\",\\"bookId\\":\\"B1\\",\\"maturityDate\\":\\"2020-01-01\\"}" ^
-                                -w "%%{http_code}" ^
-                                -o nul ^
-                                -s | findstr "400" > nul
-                        '''
-                        if (errorlevel == 0) {
+                        def dateTest = sh(script: '''
+                            curl -X POST http://localhost:8080/api/trades \\
+                                -H "Content-Type: application/json" \\
+                                -d '{"tradeId":"T2","version":1,"counterPartyId":"CP-1","bookId":"B1","maturityDate":"2020-01-01"}' \\
+                                -w "%{http_code}" \\
+                                -o /dev/null \\
+                                -s
+                        ''', returnStdout: true).trim()
+                        if (dateTest == "400") {
                             echo "✓ Test 7 PASSED: Maturity date validation working correctly"
                         }
 
@@ -242,10 +242,10 @@ pipeline {
                 echo '========== Running Performance Test =========='
                 script {
                     try {
-                        bat '''
+                        sh '''
                             echo Testing API response time...
-                            curl -w "Response Time: %%{time_total}s\\n" ^
-                                 -o nul ^
+                            curl -w "Response Time: %{time_total}s\\n" \\
+                                 -o /dev/null \\
                                  -s http://localhost:8080/api/trades
                         '''
                         echo "✓ Performance test completed"
@@ -260,7 +260,7 @@ pipeline {
     post {
         always {
             echo '========== Pipeline Execution Summary =========='
-            bat """
+            sh """
                 echo Build Number: ${BUILD_NUMBER}
                 echo Project: ${DOCKER_COMPOSE_PROJECT}
                 echo Application URL: http://localhost:${APP_PORT}/api
@@ -276,7 +276,7 @@ pipeline {
         failure {
             echo '========== Build Failed =========='
             echo "✗ Build failed. Check logs for details."
-            bat """
+            sh """
                 docker-compose -p ${DOCKER_COMPOSE_PROJECT} logs --tail=100
             """
         }
