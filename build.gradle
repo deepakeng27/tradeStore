@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'org.owasp.dependencycheck' version '10.0.4'
 }
 
 group = 'com.dws.trade'
@@ -25,6 +26,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-kafka'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
 	// Database Drivers
 	implementation 'org.postgresql:postgresql'
@@ -62,3 +64,17 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+// OWASP Dependency Check Configuration
+dependencyCheck {
+	formats = ['HTML', 'JSON', 'XML']
+	outputDirectory = 'build/reports'
+	failBuildOnCVSS = 7
+	suppressionFile = 'dependency-check-suppressions.xml'
+	analyzers {
+		assemblyEnabled = false
+		nugetconfEnabled = false
+		nodeEnabled = false
+	}
+}
+

@@ -1,0 +1,220 @@
+================================================================================
+JENKINS PIPELINE SETUP - COMPLETE GUIDE
+================================================================================
+
+STEP 1: START JENKINS
+------------------------
+Run: start-jenkins.bat
+
+OR manually:
+docker run -d --name jenkins-master -p 8081:8080 -p 50000:50000 -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock --restart=unless-stopped jenkins/jenkins:lts
+
+Wait 3 minutes, then get password:
+docker exec jenkins-master cat /var/jenkins_home/secrets/initialAdminPassword
+
+STEP 2: SETUP JENKINS (First Time Only)
+-----------------------------------------
+1. Open: http://localhost:8081
+2. Paste admin password (if asked)
+3. Install suggested plugins (wait 5 minutes)
+4. Create admin user or click "Continue as admin"
+
+STEP 3: INSTALL REQUIRED PLUGINS
+----------------------------------
+Manage Jenkins → Plugins → Available Plugins
+Search and install:
+- Docker Pipeline
+- Pipeline
+- Git Plugin
+- HTML Publisher
+- JUnit Plugin
+
+Click "Install without restart"
+
+STEP 4: CONFIGURE TOOLS (if needed)
+-------------------------------------
+Manage Jenkins → Tools
+
+Add JDK:
+- Name: JDK-17
+- Install automatically: Yes
+- Version: jdk-17.0.2+8
+
+Add Gradle:
+- Name: Gradle-8.5
+- Install automatically: Yes
+- Version: 8.5
+
+Save
+
+STEP 5: CREATE PIPELINE JOB
+-----------------------------
+1. Dashboard → New Item
+2. Name: tradestore-pipeline
+3. Type: Pipeline
+4. Click OK
+
+STEP 6: CONFIGURE PIPELINE
+----------------------------
+In pipeline configuration:
+
+General:
+- Description: Trade Store CI/CD with Regression Testing & Vulnerability Scanning
+
+Build Triggers:
+- ☑ Poll SCM
+- Schedule: H/5 * * * * (checks every 5 minutes)
+
+Pipeline:
+- Definition: Pipeline script from SCM
+- SCM: Git
+- Repository URL: https://github.com/deepakeng27/tradeStore.git
+- Branch: */main
+- Script Path: Jenkinsfile
+
+Save
+
+STEP 7: RUN FIRST BUILD
+-------------------------
+Click "Build Now"
+
+Build will:
+1. Checkout code
+2. Build application (gradlew build)
+3. Run unit tests
+4. Scan for vulnerabilities (OWASP)
+   - Fails if CRITICAL vulnerabilities found
+   - Fails if more than 3 HIGH vulnerabilities found
+5. Build Docker image
+6. Stop existing containers
+7. Deploy application
+8. Health check
+9. Run regression tests (7 automated tests)
+10. Performance test
+
+First build: 10-15 minutes
+Subsequent builds: 5-8 minutes
+
+STEP 8: VERIFY DEPLOYMENT
+---------------------------
+After successful build:
+
+Check containers:
+docker ps
+
+Expected output:
+- jenkins-master (port 8081)
+- tradestore-app (port 8080)
+- tradestore-postgres
+- tradestore-mongodb
+- tradestore-kafka
+- tradestore-zookeeper
+
+Test application:
+curl http://localhost:8080/api/actuator/health
+
+Open Swagger:
+http://localhost:8080/api/swagger-ui.html
+
+PIPELINE FEATURES
+==================
+
+✓ Automated Unit Tests (JUnit reports)
+✓ OWASP Dependency Check (vulnerability scanning)
+✓ Critical/High vulnerability detection (build fails)
+✓ Docker image building
+✓ Automated deployment
+✓ Health checks with retry
+✓ Regression tests (7 automated tests):
+  - Create trade
+  - Retrieve trade
+  - Get all trades
+  - Swagger UI accessibility
+  - Database connectivity
+  - Version validation
+  - Maturity date validation
+✓ Performance testing
+✓ HTML test reports
+✓ Detailed logging
+
+VULNERABILITY SCAN THRESHOLDS
+==============================
+- CRITICAL: Build FAILS (0 allowed)
+- HIGH: Build FAILS if > 3
+- MEDIUM: Build continues with warning
+- LOW: Ignored
+
+REGRESSION TESTS
+=================
+Test 1: Create Trade (POST /api/trades)
+Test 2: Retrieve Trade (GET /api/trades/{id})
+Test 3: Get All Trades (GET /api/trades)
+Test 4: Swagger UI Accessible
+Test 5: Database Connectivity
+Test 6: Version Validation (lower version rejected)
+Test 7: Maturity Date Validation (past date rejected)
+
+TROUBLESHOOTING
+================
+
+Jenkins not starting:
+→ docker logs jenkins-master
+→ docker restart jenkins-master
+
+Build fails at vulnerability scan:
+→ Check build/reports/dependency-check-report.html
+→ Add suppressions in dependency-check-suppressions.xml
+
+Docker not found in Jenkins:
+→ docker exec -u root jenkins-master apt-get update
+→ docker exec -u root jenkins-master apt-get install -y docker.io
+→ docker restart jenkins-master
+
+Application not accessible:
+→ docker-compose -p tradestore logs
+→ docker-compose -p tradestore restart tradestore-app
+
+Regression tests failing:
+→ Check if application is fully started
+→ Verify health check passed
+→ Check application logs
+
+USEFUL COMMANDS
+================
+
+Jenkins:
+docker logs -f jenkins-master
+docker exec -it jenkins-master bash
+docker restart jenkins-master
+
+Application:
+docker-compose -p tradestore ps
+docker-compose -p tradestore logs -f
+docker-compose -p tradestore restart tradestore-app
+docker-compose -p tradestore down
+docker-compose -p tradestore up -d
+
+Testing:
+curl http://localhost:8080/api/actuator/health
+curl http://localhost:8080/api/trades
+curl -X POST http://localhost:8080/api/trades -H "Content-Type: application/json" -d "{\"tradeId\":\"T1\",\"version\":1,\"counterPartyId\":\"CP-1\",\"bookId\":\"B1\",\"maturityDate\":\"2026-05-20\"}"
+
+ACCESS URLS
+============
+Jenkins: http://localhost:8081
+Application: http://localhost:8080/api
+Swagger UI: http://localhost:8080/api/swagger-ui.html
+Health Check: http://localhost:8080/api/actuator/health
+
+NEXT STEPS
+===========
+1. Run: start-jenkins.bat
+2. Wait 3 minutes
+3. Open http://localhost:8081
+4. Complete setup (if first time)
+5. Create pipeline job
+6. Click "Build Now"
+7. Wait for deployment
+8. Access application
+
+================================================================================

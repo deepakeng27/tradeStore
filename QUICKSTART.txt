@@ -1,0 +1,53 @@
+JENKINS PIPELINE - QUICK START
+===============================
+
+1. START JENKINS
+   cd C:\Users\Deepak\IdeaProjects\tradeStore
+   start-jenkins.bat
+
+   Wait 3 minutes, then open: http://localhost:8081
+
+2. GET PASSWORD (if needed)
+   docker exec jenkins-master cat /var/jenkins_home/secrets/initialAdminPassword
+
+3. SETUP JENKINS (first time only)
+   - Paste password
+   - Install suggested plugins
+   - Create admin user
+
+4. INSTALL PLUGINS
+   Manage Jenkins → Plugins → Available
+   Install: Docker Pipeline, Pipeline, Git, HTML Publisher, JUnit
+
+5. CREATE PIPELINE JOB
+   New Item → "tradestore-pipeline" → Pipeline
+
+   Configure:
+   - SCM: Git
+   - URL: https://github.com/deepakeng27/tradeStore.git
+   - Branch: */main
+   - Script Path: Jenkinsfile
+
+   Save → Build Now
+
+6. VERIFY
+   After build completes:
+   http://localhost:8080/api/swagger-ui.html
+
+PIPELINE INCLUDES
+==================
+✓ Unit Tests
+✓ Vulnerability Scan (OWASP) - FAILS on CRITICAL CVEs
+✓ Docker Build & Deploy
+✓ Health Checks
+✓ 7 Automated Regression Tests
+✓ Performance Tests
+
+QUICK COMMANDS
+===============
+Jenkins logs:    docker logs -f jenkins-master
+App logs:        docker-compose -p tradestore logs -f
+Restart app:     docker-compose -p tradestore restart
+Health check:    curl http://localhost:8080/api/actuator/health
+
+See JENKINS-SETUP.txt for complete guide
