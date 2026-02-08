@@ -81,6 +81,8 @@ services:
     ports:
       - "8080:8080"
       - "5005:5005"   # debug port
+    volumes:
+      - ./logs:/app/logs  # Mount logs directory for persistent logging
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tradestore
       SPRING_DATASOURCE_USERNAME: postgres
