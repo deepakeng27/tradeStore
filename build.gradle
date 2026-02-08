@@ -66,6 +66,19 @@ tasks.named('test') {
 }
 
 // OWASP Dependency Check Configuration
+// TEMPORARILY DISABLED due to NVD API parsing bug in v11.1.1
+// Error: Cannot construct instance of CvssV4Data$ModifiedCiaType, problem: SAFETY
+// This is a known issue with CVSS v4.0 data parsing
+//
+// Alternative vulnerability scanning options:
+// 1. Wait for OWASP plugin fix (check https://github.com/jeremylong/DependencyCheck)
+// 2. Use Trivy: docker run aquasec/trivy fs --severity HIGH,CRITICAL .
+// 3. Use Snyk: snyk test
+// 4. Use GitHub Dependabot (automatic in GitHub)
+//
+// To re-enable when fixed, uncomment the configuration below:
+
+/*
 dependencyCheck {
 	formats = ['HTML', 'JSON', 'XML']
 	outputDirectory = 'build/reports'
@@ -100,4 +113,6 @@ dependencyCheck {
 	// Continue even if NVD update fails
 	failOnError = false
 }
+*/
+
 
